@@ -1,10 +1,14 @@
 #![feature(vec_remove_item)]
+#![feature(rand)]
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::cmp::Ordering;
+use std::__rand::thread_rng;
+use std::__rand::Rng;
+use std::fmt;
 
 struct Job {
 	name: String,
@@ -16,6 +20,12 @@ impl PartialEq for Job {
 	fn eq(&self, other: &Job) -> bool {
 		self.name == other.name && self.p == other.p && self.d == other.d
 	}
+}
+
+impl fmt::Debug for Job {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job {{ name: {}, p: {}, d: {} }}", self.name, self.p, self.d)
+    }
 }
 
 struct Schedule<> {
@@ -93,6 +103,28 @@ fn lawler_scheduler(mut jobs: Vec<Job>) -> Schedule {
 	return Schedule{ jobs: n_jobs, cost: max as f32};
 }
 
+fn wsrt_scheduler(mut jobs: Vec<Job>) -> Schedule {
+	jobs.sort_by(|a, b| ((a.d/a.p) as f32).partial_cmp(&((b.d / b.p) as f32)).unwrap_or(Ordering::Equal));
+	let mut sum = 0.;
+	let mut time = 0;
+	for j in &jobs {
+		time += j.p;
+		sum += (j.d * time) as f32;
+	}
+	return Schedule{ jobs, cost: sum };
+}
+
+fn rnd_scheduler(mut jobs: Vec<Job>) -> Schedule {
+	thread_rng().shuffle(&mut jobs);
+	let mut sum = 0.;
+	let mut time = 0;
+	for j in &jobs {
+		time += j.p;
+		sum += (j.d * time) as f32;
+	}
+	return Schedule{ jobs, cost: sum };
+}
+
 fn print_schedule(schedule: Schedule) {
 	println!("The jobs are scheduled in the following order:");
 	for j in &schedule.jobs {
@@ -110,7 +142,9 @@ fn main() {
     let joblist = read_job_list(filename);
     let schedule = match scheduler.as_str() {
     	"edf" => edf_scheduler(joblist),
-	_ => lawler_scheduler(joblist),
+	"wsrt" => wsrt_scheduler(joblist),
+	"lawler" => lawler_scheduler(joblist),
+	_ => rnd_scheduler(joblist),
     };
     print_schedule(schedule);
 }
