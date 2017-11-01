@@ -66,8 +66,8 @@ fn edf_scheduler(mut jobs: Vec<Job>) -> Schedule {
 	let mut time = 0;
 	for j in &jobs {
 		time += j.p;
-		if max < - (j.d - time) {
-			max = j.d - time;
+		if max < (time - j.d) {
+			max = time - j.d;
 		}
 	}
 	return Schedule{ jobs, cost: max as f32 };
