@@ -10,6 +10,7 @@ use std::__rand::thread_rng;
 use std::__rand::Rng;
 use std::fmt;
 
+#[derive(Eq)]
 struct Job {
 	name: String,
 	p: i32,
@@ -66,8 +67,8 @@ fn edf_scheduler(mut jobs: Vec<Job>) -> Schedule {
 	let mut time = 0;
 	for j in &jobs {
 		time += j.p;
-		if max < (time - j.d) {
-			max = time - j.d;
+		if max < -(time - j.d) {
+			max = -(time - j.d);
 		}
 	}
 	return Schedule{ jobs, cost: max as f32 };
@@ -83,8 +84,15 @@ fn lawler_cost(time: &i32, deadline: &i32) -> f32 {
 }
 
 fn lawler_get_next(jobs: &Vec<Job>, time: &i32) -> Job {
-	let j = jobs.into_iter().max_by(|a, b| lawler_cost(time, &a.d).partial_cmp(&lawler_cost(time, &b.d)).unwrap_or(Ordering::Equal)).unwrap();
-	return Job{name: j.name.clone(), p: j.p, d: j.d};
+	let mut max = -1.;
+	let mut max_j = &jobs[0];
+	for j in jobs {
+		if max < lawler_cost(time, &j.d) {
+			max = lawler_cost(time, &j.d);
+			max_j = j;
+		}
+	}
+	return Job{name: max_j.name.clone(), p: max_j.p, d: max_j.d};
 }
 
 fn lawler_scheduler(mut jobs: Vec<Job>) -> Schedule {
